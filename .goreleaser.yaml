@@ -50,7 +50,7 @@ release:
   github:
     owner: stnokott
     name: r6prom
-  name_template: "{{ .ProjectName }}-v{{ .Version }}"
+  name_template: "v{{ .Version }}"
 dockers:
   - image_templates:
       - "ghcr.io/stnokott/{{ .ProjectName }}:latest"
