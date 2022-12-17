@@ -1,0 +1,6 @@
+dist/**
+
+ticket.json
+
+.vscode/
+.idea/
