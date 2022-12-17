@@ -99,7 +99,10 @@ func (s *Store) Collect(ch chan<- prometheus.Metric) {
 func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
 	s.logger.Debug().Str("username", username).Msg("collecting")
 	profile, err := s.cache.GetProfile(username)
-	if err != nil {
+	if err != nil || profile == nil {
+		if err == nil && profile == nil {
+			err = fmt.Errorf("could not resolve profile for %s", username)
+		}
 		for _, m := range allMetrics {
 			ch <- prometheus.NewInvalidMetric(m, err)
 		}
