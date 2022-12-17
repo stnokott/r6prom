@@ -31,7 +31,9 @@ func (c *cache) GetProfile(username string) (p *r6api.Profile, err error) {
 		p, _ = c.userCache.Get(username)
 	} else {
 		p, err = c.api.ResolveUser(username)
-		c.userCache.Set(username, p, cacheUserExpiration)
+		if p != nil {
+			c.userCache.Set(username, p, cacheUserExpiration)
+		}
 	}
 	return
 }
