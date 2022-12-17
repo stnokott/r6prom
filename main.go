@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -11,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6prom/config"
+	"github.com/stnokott/r6prom/constants"
 	"github.com/stnokott/r6prom/store"
 )
 
@@ -22,7 +24,13 @@ func main() {
 		PartsOrder:    []string{"time", "level", "name", "message"},
 		FieldsExclude: []string{"name"},
 	}
-	logger := zerolog.New(writer).Level(zerolog.DebugLevel).With().Timestamp().Str("name", "R6Prom").Logger()
+	logLevel, err := strconv.Atoi(constants.LOG_LEVEL)
+	if err != nil {
+		panic(err)
+	}
+	logger := zerolog.New(writer).Level(zerolog.Level(logLevel)).With().Timestamp().Str("name", "R6Prom").Logger()
+
+	logger.Info().Str("version", constants.VERSION).Stringer("log_level", logger.GetLevel()).Msgf("Setting up %s", constants.NAME)
 
 	conf, err := config.Load()
 	if err != nil {
@@ -62,6 +70,6 @@ func main() {
 			},
 		),
 	)
-	logger.Info().Msg("started Prometheus HTTP server on localhost:2112")
+	logger.Info().Str("host", "localhost").Int("port", 2112).Msg("started Prometheus HTTP server")
 	logger.Err(http.ListenAndServe(":2112", nil)).Msg("Prometheus HTTP server stopped")
 }

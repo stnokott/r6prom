@@ -10,6 +10,7 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+      - windows
     goarch:
       - amd64
       - arm
@@ -17,6 +18,8 @@ builds:
     goarm:
       - "7"
     binary: app
+    ldflags:
+      - -X github.com/stnokott/r6prom/constants.LOG_LEVEL=1 # set log level to INFO
 changelog:
   sort: asc
   abbrev: -1
