@@ -3,9 +3,12 @@ module github.com/stnokott/r6prom
 go 1.19
 
 require (
+	github.com/Code-Hex/go-generics-cache v1.2.1
 	github.com/rs/zerolog v1.28.0
 	github.com/stnokott/r6api v0.3.3
 )
+
+require golang.org/x/exp v0.0.0-20220328175248-053ad81199eb // indirect
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect

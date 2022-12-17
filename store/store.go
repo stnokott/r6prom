@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -19,6 +20,7 @@ type Store struct {
 	api       *r6api.R6API
 	metaMutex sync.Mutex
 	meta      *metadata.Metadata
+	cache     *cache
 	opts      Opts
 	logger    *zerolog.Logger
 }
@@ -32,10 +34,11 @@ type Opts struct {
 	MetadataTimeout time.Duration
 }
 
-func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts) (*Store, error) {
+func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts, ctx context.Context) (*Store, error) {
 	store := &Store{
 		api:       api,
 		metaMutex: sync.Mutex{},
+		cache:     newCache(api, logger, ctx),
 		opts:      opts,
 		logger:    logger,
 	}
@@ -95,7 +98,7 @@ func (s *Store) Collect(ch chan<- prometheus.Metric) {
 
 func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
 	s.logger.Debug().Str("username", username).Msg("collecting")
-	profile, err := s.api.ResolveUser(username)
+	profile, err := s.cache.GetProfile(username)
 	if err != nil {
 		for _, m := range allMetrics {
 			ch <- prometheus.NewInvalidMetric(m, err)

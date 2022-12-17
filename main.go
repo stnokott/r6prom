@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -41,6 +42,10 @@ func main() {
 	r6Logger := logger.With().Str("name", "R6API").Logger()
 	a := r6api.NewR6API(conf.Email, conf.Password, r6Logger)
 
+	// create store
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	chanStoreErrs := make(chan error)
 	go func() {
 		for {
@@ -53,7 +58,7 @@ func main() {
 		ChanErrors:        chanStoreErrs,
 		MetadataTimeout:   12 * time.Hour,
 	}
-	store, err := store.New(a, &logger, storeOpts)
+	store, err := store.New(a, &logger, storeOpts, ctx)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error creating store")
 	}
