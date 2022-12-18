@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.17.0
 
 ENV UBI_EMAIL="my@mail.com"
 ENV UBI_PASSWORD="v3rys4fep4s5w0rd"
