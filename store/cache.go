@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	gcache "github.com/Code-Hex/go-generics-cache"
@@ -26,14 +27,17 @@ func newCache(api *r6api.R6API, logger *zerolog.Logger, ctx context.Context) *ca
 }
 
 func (c *cache) GetProfile(username string) (p *r6api.Profile, err error) {
-	if c.userCache.Contains(username) {
-		c.logger.Debug().Str("username", username).Msg("using cached profile")
-		p, _ = c.userCache.Get(username)
-	} else {
+	var cached bool
+	p, cached = c.userCache.Get(username)
+	if p == nil || !cached {
 		p, err = c.api.ResolveUser(username)
 		if p != nil {
 			c.userCache.Set(username, p, cacheUserExpiration)
+		} else if err == nil {
+			err = fmt.Errorf("R6API returned nil profile for '%s'", username)
 		}
+	} else {
+		c.logger.Debug().Str("username", username).Msg("using cached profile")
 	}
 	return
 }
