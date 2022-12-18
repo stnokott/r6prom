@@ -3,18 +3,33 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: "daily"
-      timezone: "Europe/Berlin"
+      interval: daily
+      timezone: Europe/Berlin
     assignees:
-      - "stnokott"
+      - stnokott
     reviewers:
-      - "stnokott"
-  - directory: "/"
-    package-ecosystem: gomod
+      - stnokott
+    commit-message:
+      prefix: github
+  - package-ecosystem: gomod
+    directory: /
     schedule:
-      interval: "daily"
-      timezone: "Europe/Berlin"
+      interval: daily
+      timezone: Europe/Berlin
     assignees:
-      - "stnokott"
+      - stnokott
     reviewers:
-      - "stnokott"
+      - stnokott
+    commit-message:
+      prefix: go
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      timezone: Europe/Berlin
+    assignees:
+      - stnokott
+    reviewers:
+      - stnokott
+    commit-message:
+      prefix: docker
