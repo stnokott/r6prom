@@ -14,7 +14,6 @@ import (
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6prom/config"
 	"github.com/stnokott/r6prom/constants"
-	"github.com/stnokott/r6prom/metrics"
 	"github.com/stnokott/r6prom/store"
 )
 
@@ -63,8 +62,6 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error creating store")
 	}
-	store.Register(metrics.RankedMetricProvider{})
-	store.Register(metrics.ActionsMetricProvider{})
 
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(store)

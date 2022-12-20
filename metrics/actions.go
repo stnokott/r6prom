@@ -2,9 +2,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stnokott/r6api/types/metadata"
 	"github.com/stnokott/r6api/types/stats"
-	"github.com/stnokott/r6prom/store"
 )
 
 var (
@@ -126,18 +124,24 @@ var allKillDescs = []*prometheus.Desc{
 	descRoundsWithMultiKill,
 }
 
-type ActionsMetricProvider struct{}
+type ActionsMetricProvider struct {
+	Stats    *stats.SummarizedStats
+	Username string
+}
 
-func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.StatsCollection, m *metadata.Metadata, username string) {
-	if s == nil {
+func (p ActionsMetricProvider) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(p, ch)
+}
+
+func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric) {
+	if p.Stats == nil {
 		return
 	}
-	summarizedStats := s.SummarizedStats
 
 	gameModes := map[string]*stats.SummarizedGameModeStats{
-		"casual":   summarizedStats.Casual,
-		"unranked": summarizedStats.Unranked,
-		"ranked":   summarizedStats.Ranked,
+		"casual":   p.Stats.Casual,
+		"unranked": p.Stats.Unranked,
+		"ranked":   p.Stats.Ranked,
 	}
 	for gameModeName, gameMode := range gameModes {
 		if gameMode == nil {
@@ -176,8 +180,8 @@ func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.Sta
 					metric.desc,
 					prometheus.GaugeValue,
 					metric.value,
-					summarizedStats.SeasonSlug,
-					username,
+					p.Stats.SeasonSlug,
+					p.Username,
 					gameModeName,
 					roleName,
 				)
@@ -186,7 +190,7 @@ func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.Sta
 	}
 }
 
-func (p ActionsMetricProvider) CollectErr(ch chan<- prometheus.Metric, err error) {
+func ActionsErr(ch chan<- prometheus.Metric, err error) {
 	for _, d := range allKillDescs {
 		ch <- prometheus.NewInvalidMetric(d, err)
 	}

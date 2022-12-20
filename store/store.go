@@ -11,28 +11,17 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6api/types/metadata"
-	"github.com/stnokott/r6api/types/ranked"
 	"github.com/stnokott/r6api/types/stats"
+	"github.com/stnokott/r6prom/metrics"
 )
 
-type StatsCollection struct {
-	RankedStats     ranked.SeasonStats
-	SummarizedStats *stats.SummarizedStats
-}
-
-type MetricProvider interface {
-	Collect(ch chan<- prometheus.Metric, s *StatsCollection, m *metadata.Metadata, username string)
-	CollectErr(chan<- prometheus.Metric, error)
-}
-
 type Store struct {
-	api             *r6api.R6API
-	metaMutex       sync.Mutex
-	meta            *metadata.Metadata
-	metricProviders []MetricProvider
-	cache           *cache
-	opts            Opts
-	logger          *zerolog.Logger
+	api       *r6api.R6API
+	metaMutex sync.Mutex
+	meta      *metadata.Metadata
+	cache     *cache
+	opts      Opts
+	logger    *zerolog.Logger
 }
 
 type Opts struct {
@@ -71,10 +60,6 @@ func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts, ctx context.Contex
 	return store, nil
 }
 
-func (s *Store) Register(provider MetricProvider) {
-	s.metricProviders = append(s.metricProviders, provider)
-}
-
 func (s *Store) RefreshMetadata() error {
 	s.logger.Debug().Msg("refreshing metadata")
 	s.metaMutex.Lock()
@@ -110,40 +95,34 @@ func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
 		if err == nil && profile == nil {
 			err = fmt.Errorf("could not resolve profile for %s", username)
 		}
-		for _, m := range s.metricProviders {
-			m.CollectErr(ch, err)
-		}
+		metrics.ActionsErr(ch, err)
+		metrics.RankedErr(ch, err)
 		return
 	}
 
-	var sc *StatsCollection
-	if sc, err = s.getStats(profile); err != nil {
-		for _, m := range s.metricProviders {
-			m.CollectErr(ch, err)
-		}
-	}
-
-	for _, provider := range s.metricProviders {
-		provider.Collect(ch, sc, s.meta, username)
-	}
+	s.collectStats(ch, profile)
 }
 
-func (s *Store) getStats(profile *r6api.Profile) (sc *StatsCollection, err error) {
+func (s *Store) collectStats(ch chan<- prometheus.Metric, profile *r6api.Profile) {
 	// length of metadata already checked in RefreshMetadata, no need to check here
-	season := s.meta.Seasons[len(s.meta.Seasons)-1]
+	currentSeason := s.meta.Seasons[len(s.meta.Seasons)-1]
 	stats := new(stats.SummarizedStats)
-	if err = s.api.GetStats(profile, season.Slug, stats); err != nil {
-		return
+	if err := s.api.GetStats(profile, currentSeason.Slug, stats); err != nil {
+		metrics.ActionsErr(ch, err)
+	} else {
+		metrics.ActionsMetricProvider{
+			Stats:    stats,
+			Username: profile.Name,
+		}.Collect(ch)
 	}
 
-	var skillHistory ranked.SkillHistory
-	if skillHistory, err = s.api.GetRankedHistory(profile, 1); err != nil {
-		return
+	if skillHistory, err := s.api.GetRankedHistory(profile, 1); err != nil {
+		metrics.RankedErr(ch, err)
+	} else {
+		metrics.RankedMetricProvider{
+			Stats:    &skillHistory[0],
+			Meta:     s.meta,
+			Username: profile.Name,
+		}.Collect(ch)
 	}
-
-	sc = &StatsCollection{
-		RankedStats:     skillHistory[0],
-		SummarizedStats: stats,
-	}
-	return
 }

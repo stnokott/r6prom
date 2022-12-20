@@ -3,7 +3,7 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stnokott/r6api/types/metadata"
-	"github.com/stnokott/r6prom/store"
+	"github.com/stnokott/r6api/types/ranked"
 )
 
 var (
@@ -48,11 +48,19 @@ var allRankedDescs = []*prometheus.Desc{
 	descRankedGamesLost,
 }
 
-type RankedMetricProvider struct{}
+type RankedMetricProvider struct {
+	Stats    *ranked.SeasonStats
+	Meta     *metadata.Metadata
+	Username string
+}
 
-func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.StatsCollection, m *metadata.Metadata, username string) {
-	rankedStats := s.RankedStats
-	seasonSlug := m.SeasonSlugFromID(rankedStats.SeasonID)
+func (p RankedMetricProvider) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(p, ch)
+}
+
+func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
+	rankedStats := p.Stats
+	seasonSlug := p.Meta.SeasonSlugFromID(rankedStats.SeasonID)
 
 	for _, v := range []struct {
 		desc  *prometheus.Desc
@@ -69,12 +77,12 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.Stat
 			prometheus.GaugeValue,
 			v.value,
 			seasonSlug,
-			username,
+			p.Username,
 		)
 	}
 }
 
-func (p RankedMetricProvider) CollectErr(ch chan<- prometheus.Metric, err error) {
+func RankedErr(ch chan<- prometheus.Metric, err error) {
 	for _, d := range allRankedDescs {
 		ch <- prometheus.NewInvalidMetric(d, err)
 	}
