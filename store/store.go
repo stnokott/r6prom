@@ -11,9 +11,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6api/types/metadata"
-	"github.com/stnokott/r6api/types/ranked"
 	"github.com/stnokott/r6api/types/stats"
-	"github.com/stnokott/r6prom/store/metrics"
+	"github.com/stnokott/r6prom/metrics"
 )
 
 type Store struct {
@@ -76,18 +75,8 @@ func (s *Store) RefreshMetadata() error {
 	return nil
 }
 
-// TODO: dont forget to add
-var allMetrics = []*prometheus.Desc{
-	metrics.DescKills,
-	metrics.DescRankedMMR,
-	metrics.DescRankedRank,
-	metrics.DescRankedConfidence,
-}
-
 func (s *Store) Describe(ch chan<- *prometheus.Desc) {
-	for _, m := range allMetrics {
-		ch <- m
-	}
+	prometheus.DescribeByCollect(s, ch)
 }
 
 func (s *Store) Collect(ch chan<- prometheus.Metric) {
@@ -98,50 +87,42 @@ func (s *Store) Collect(ch chan<- prometheus.Metric) {
 
 func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
 	s.logger.Debug().Str("username", username).Msg("collecting")
-	profile, err := s.cache.GetProfile(username)
+
+	var err error
+	var profile *r6api.Profile
+	profile, err = s.cache.GetProfile(username)
 	if err != nil || profile == nil {
 		if err == nil && profile == nil {
 			err = fmt.Errorf("could not resolve profile for %s", username)
 		}
-		for _, m := range allMetrics {
-			ch <- prometheus.NewInvalidMetric(m, err)
-		}
+		metrics.ActionsErr(ch, err)
+		metrics.RankedErr(ch, err)
 		return
 	}
 
-	s.collectKillsMetric(ch, profile)
-	s.collecRankedMetrics(ch, profile)
+	s.collectStats(ch, profile)
 }
 
-func (s *Store) collectKillsMetric(ch chan<- prometheus.Metric, profile *r6api.Profile) {
-	var err error
-	defer func() {
-		if err != nil {
-			ch <- prometheus.NewInvalidMetric(metrics.DescKills, err)
-		}
-	}()
-
+func (s *Store) collectStats(ch chan<- prometheus.Metric, profile *r6api.Profile) {
 	// length of metadata already checked in RefreshMetadata, no need to check here
-	season := s.meta.Seasons[len(s.meta.Seasons)-1]
+	currentSeason := s.meta.Seasons[len(s.meta.Seasons)-1]
 	stats := new(stats.SummarizedStats)
-	if err = s.api.GetStats(profile, season.Slug, stats); err != nil {
-		return
-	}
-	metrics.CollectKills(ch, stats, s.meta, profile.Name)
-}
-
-func (s *Store) collecRankedMetrics(ch chan<- prometheus.Metric, profile *r6api.Profile) {
-	var err error
-	defer func() {
-		if err != nil {
-			ch <- prometheus.NewInvalidMetric(metrics.DescRankedMMR, err)
-		}
-	}()
-
-	var skillHistory ranked.SkillHistory
-	if skillHistory, err = s.api.GetRankedHistory(profile, 1); err != nil {
-		return
+	if err := s.api.GetStats(profile, currentSeason.Slug, stats); err != nil {
+		metrics.ActionsErr(ch, err)
+	} else {
+		metrics.ActionsMetricProvider{
+			Stats:    stats,
+			Username: profile.Name,
+		}.Collect(ch)
 	}
 
-	metrics.CollectRank(ch, skillHistory[0], s.meta, profile.Name)
+	if skillHistory, err := s.api.GetRankedHistory(profile, 1); err != nil {
+		metrics.RankedErr(ch, err)
+	} else {
+		metrics.RankedMetricProvider{
+			Stats:    skillHistory[0],
+			Meta:     s.meta,
+			Username: profile.Name,
+		}.Collect(ch)
+	}
 }
