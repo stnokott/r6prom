@@ -64,7 +64,7 @@ func main() {
 		logger.Fatal().Err(err).Msg("error creating store")
 	}
 	store.Register(metrics.RankedMetricProvider{})
-	// TODO: add kills metrics
+	store.Register(metrics.ActionsMetricProvider{})
 
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(store)

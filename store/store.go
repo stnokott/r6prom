@@ -16,7 +16,8 @@ import (
 )
 
 type StatsCollection struct {
-	RankedStats ranked.SeasonStats
+	RankedStats     ranked.SeasonStats
+	SummarizedStats *stats.SummarizedStats
 }
 
 type MetricProvider interface {
@@ -146,7 +147,8 @@ func (s *Store) getStats(profile *r6api.Profile) (sc *StatsCollection, err error
 	}
 
 	sc = &StatsCollection{
-		RankedStats: skillHistory[0],
+		RankedStats:     skillHistory[0],
+		SummarizedStats: stats,
 	}
 	return
 }

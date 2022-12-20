@@ -50,7 +50,7 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.Stat
 		value float64
 	}{
 		{descRankedMMR, float64(rankedStats.MMR)},
-		{descRankedMMR, float64(rankedStats.Rank)},
+		{descRankedRank, float64(rankedStats.Rank)},
 		{descRankedConfidence, float64(rankedStats.SkillStdev)},
 	} {
 		ch <- prometheus.MustNewConstMetric(
