@@ -26,11 +26,7 @@ changelog:
   filters:
     exclude:
       - "^style"
-      - "^refactor"
       - "^test"
-      - "^build"
-      - "^ci"
-      - "^bump"
       - "^Merge pull request"
 
   groups:
@@ -41,8 +37,14 @@ changelog:
       regexp: "^fix"
     - title: Documentation
       regexp: "^docs"
+    - title: Code refactor
+      regexp: "^refactor"
     - title: Performance Optimization
       regexp: "^perf"
+    - title: Dependencies
+      regexp: "^build(deps)"
+    - title: Pipeline
+      regexp: "^ci"
     - title: Others
       order: 999
 release:
