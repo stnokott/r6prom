@@ -21,7 +21,6 @@ type StatsCollection struct {
 }
 
 type MetricProvider interface {
-	GetDescs() []*prometheus.Desc
 	Collect(ch chan<- prometheus.Metric, s *StatsCollection, m *metadata.Metadata, username string)
 	CollectErr(chan<- prometheus.Metric, error)
 }
@@ -92,11 +91,7 @@ func (s *Store) RefreshMetadata() error {
 }
 
 func (s *Store) Describe(ch chan<- *prometheus.Desc) {
-	for _, m := range s.metricProviders {
-		for _, d := range m.GetDescs() {
-			ch <- d
-		}
-	}
+	prometheus.DescribeByCollect(s, ch)
 }
 
 func (s *Store) Collect(ch chan<- prometheus.Metric) {

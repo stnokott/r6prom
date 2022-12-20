@@ -6,40 +6,49 @@ import (
 	"github.com/stnokott/r6prom/store"
 )
 
-var labelsRanked = []string{"season", "username"}
-
-var descRankedMMR = prometheus.NewDesc(
-	"ranked_mmr",
-	"Ranked MMR for a user in a season",
-	labelsRanked,
-	nil,
-)
-
-var descRankedRank = prometheus.NewDesc(
-	"ranked_rank",
-	"Ranked rank ID for a user in a season",
-	labelsRanked,
-	nil,
-)
-
-var descRankedConfidence = prometheus.NewDesc(
-	"ranked_confidence",
-	"Ranked confidence for a user in a season",
-	labelsRanked,
-	nil,
+var (
+	labelsRanked  = []string{"season", "username"}
+	descRankedMMR = prometheus.NewDesc(
+		"ranked_mmr",
+		"Ranked MMR by [user,season]",
+		labelsRanked,
+		nil,
+	)
+	descRankedRank = prometheus.NewDesc(
+		"ranked_rank",
+		"Ranked rank ID by [user,season]",
+		labelsRanked,
+		nil,
+	)
+	descRankedConfidence = prometheus.NewDesc(
+		"ranked_confidence",
+		"Ranked confidence by [user,season]",
+		labelsRanked,
+		nil,
+	)
+	descRankedGamesWon = prometheus.NewDesc(
+		"ranked_games_won",
+		"Ranked wins by [user,season]",
+		labelsRanked,
+		nil,
+	)
+	descRankedGamesLost = prometheus.NewDesc(
+		"ranked_games_lost",
+		"Ranked losses by [user,season]",
+		labelsRanked,
+		nil,
+	)
 )
 
 var allRankedDescs = []*prometheus.Desc{
 	descRankedMMR,
 	descRankedRank,
 	descRankedConfidence,
+	descRankedGamesWon,
+	descRankedGamesLost,
 }
 
 type RankedMetricProvider struct{}
-
-func (p RankedMetricProvider) GetDescs() []*prometheus.Desc {
-	return allRankedDescs
-}
 
 func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.StatsCollection, m *metadata.Metadata, username string) {
 	rankedStats := s.RankedStats
@@ -52,6 +61,8 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric, s *store.Stat
 		{descRankedMMR, float64(rankedStats.MMR)},
 		{descRankedRank, float64(rankedStats.Rank)},
 		{descRankedConfidence, float64(rankedStats.SkillStdev)},
+		{descRankedGamesWon, float64(rankedStats.Wins)},
+		{descRankedGamesLost, float64(rankedStats.Losses)},
 	} {
 		ch <- prometheus.MustNewConstMetric(
 			v.desc,
