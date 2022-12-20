@@ -120,7 +120,7 @@ func (s *Store) collectStats(ch chan<- prometheus.Metric, profile *r6api.Profile
 		metrics.RankedErr(ch, err)
 	} else {
 		metrics.RankedMetricProvider{
-			Stats:    &skillHistory[0],
+			Stats:    skillHistory[0],
 			Meta:     s.meta,
 			Username: profile.Name,
 		}.Collect(ch)
