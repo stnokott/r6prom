@@ -35,6 +35,15 @@ var (
 		),
 		metricType: prometheus.GaugeValue,
 	}
+	metricRankedMatchesPlayed = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_matches_played",
+			"Ranked wins by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
 	metricRankedMatchesWon = metricDetails{
 		desc: prometheus.NewDesc(
 			"ranked_matches_won",
@@ -59,6 +68,7 @@ var allRankedDescs = []metricDetails{
 	metricRankedMMR,
 	metricRankedRank,
 	metricRankedConfidence,
+	metricRankedMatchesPlayed,
 	metricRankedMatchesWon,
 	metricRankedMatchesLost,
 }
@@ -81,6 +91,7 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
 		{metricRankedMMR, float64(rankedStats.MMR)},
 		{metricRankedRank, float64(rankedStats.Rank)},
 		{metricRankedConfidence, float64(rankedStats.SkillStdev)},
+		{metricRankedMatchesPlayed, float64(rankedStats.Wins + rankedStats.Losses)},
 		{metricRankedMatchesWon, float64(rankedStats.Wins)},
 		{metricRankedMatchesLost, float64(rankedStats.Losses)},
 	} {
