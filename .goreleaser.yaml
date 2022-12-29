@@ -29,7 +29,7 @@ changelog:
     exclude:
       - "^style"
       - "^test"
-      - "^Merge pull request"
+      - "^Merge branch"
 
   groups:
     - title: Features
