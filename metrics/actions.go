@@ -5,139 +5,198 @@ import (
 	"github.com/stnokott/r6api/types/stats"
 )
 
+type metricDetails struct {
+	desc       *prometheus.Desc
+	metricType prometheus.ValueType
+}
+
 var (
 	labelsActionsWithRole = []string{"season", "username", "gamemode", "role"}
-	descKills             = prometheus.NewDesc(
-		"kills",
-		"Kills by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descDeaths = prometheus.NewDesc(
-		"deaths",
-		"Deaths by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descEntryKills = prometheus.NewDesc(
-		"entry_kills",
-		"Entry kills (first kill in a round) by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descEntryDeaths = prometheus.NewDesc(
-		"entry_deaths",
-		"Entry deaths (first death in a round) by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descHeadshotPercentage = prometheus.NewDesc(
-		"headshot_percentage",
-		"Headshot percentage by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsPlayed = prometheus.NewDesc(
-		"rounds_played",
-		"Rounds won by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWon = prometheus.NewDesc(
-		"rounds_won",
-		"Rounds won by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsLost = prometheus.NewDesc(
-		"rounds_lost",
-		"Rounds lost by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithAce = prometheus.NewDesc(
-		"rounds_with_ace",
-		"Rounds with Ace by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithClutch = prometheus.NewDesc(
-		"rounds_with_clutch",
-		"Rounds with clutch by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithEntryDeath = prometheus.NewDesc(
-		"rounds_with_entry_death",
-		"Rounds with entry death by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithEntryKill = prometheus.NewDesc(
-		"rounds_with_entry_kill",
-		"Rounds with entry kill by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithKOST = prometheus.NewDesc(
-		"rounds_with_kost",
-		"Rounds with KOST (Kill,Objective,Survival,Trade) by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithKill = prometheus.NewDesc(
-		"rounds_with_kill",
-		"Rounds with kill by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
-	descRoundsWithMultiKill = prometheus.NewDesc(
-		"rounds_with_multikill",
-		"Rounds with multi-kill by [season,user,gamemode,role]",
-		labelsActionsWithRole,
-		nil,
-	)
+	metricKills           = metricDetails{
+		desc: prometheus.NewDesc(
+			"kills",
+			"Kills by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricDeaths = metricDetails{
+		desc: prometheus.NewDesc(
+			"deaths",
+			"Deaths by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricEntryKills = metricDetails{
+		desc: prometheus.NewDesc(
+			"entry_kills",
+			"Entry kills (first kill in a round) by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricEntryDeaths = metricDetails{
+		desc: prometheus.NewDesc(
+			"entry_deaths",
+			"Entry deaths (first death in a round) by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricHeadshotPercentage = metricDetails{
+		desc: prometheus.NewDesc(
+			"headshot_percentage",
+			"Headshot percentage by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsPlayed = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_played",
+			"Rounds won by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricRoundsWon = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_won",
+			"Rounds won by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricRoundsLost = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_lost",
+			"Rounds lost by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricRoundsWithAce = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_ace",
+			"Rounds with Ace by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithClutch = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_clutch",
+			"Rounds with clutch by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithEntryDeath = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_entry_death",
+			"Rounds with entry death by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithEntryKill = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_entry_kill",
+			"Rounds with entry kill by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithKOST = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_kost",
+			"Rounds with KOST (Kill,Objective,Survival,Trade) by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithKill = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_kill",
+			"Rounds with kill by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRoundsWithMultiKill = metricDetails{
+		desc: prometheus.NewDesc(
+			"rounds_with_multikill",
+			"Rounds with multi-kill by [season,user,gamemode,role]",
+			labelsActionsWithRole,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
 
-	labelsActions     = []string{"season", "username", "gamemode"}
-	descMatchesPlayed = prometheus.NewDesc(
-		"matches_played",
-		"Matches won by [season,user,gamemode]",
-		labelsActions,
-		nil,
-	)
-	descMatchesWon = prometheus.NewDesc(
-		"matches_won",
-		"Matches won by [season,user,gamemode]",
-		labelsActions,
-		nil,
-	)
-	descMatchesLost = prometheus.NewDesc(
-		"matches_lost",
-		"Matches lost by [season,user,gamemode]",
-		labelsActions,
-		nil,
-	)
+	labelsActions       = []string{"season", "username", "gamemode"}
+	metricMatchesPlayed = metricDetails{
+		desc: prometheus.NewDesc(
+			"matches_played",
+			"Matches won by [season,user,gamemode]",
+			labelsActions,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricMatchesWon = metricDetails{
+		desc: prometheus.NewDesc(
+			"matches_won",
+			"Matches won by [season,user,gamemode]",
+			labelsActions,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricMatchesLost = metricDetails{
+		desc: prometheus.NewDesc(
+			"matches_lost",
+			"Matches lost by [season,user,gamemode]",
+			labelsActions,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
 )
 
-var allKillDescs = []*prometheus.Desc{
-	descKills,
-	descDeaths,
-	descEntryKills,
-	descEntryDeaths,
-	descHeadshotPercentage,
-	descRoundsPlayed,
-	descRoundsWon,
-	descRoundsLost,
-	descRoundsWithAce,
-	descRoundsWithClutch,
-	descRoundsWithEntryDeath,
-	descRoundsWithEntryKill,
-	descRoundsWithKOST,
-	descRoundsWithKill,
-	descRoundsWithMultiKill,
-	descMatchesPlayed,
-	descMatchesWon,
-	descMatchesLost,
+var allKillDescs = []metricDetails{
+	metricKills,
+	metricDeaths,
+	metricEntryKills,
+	metricEntryDeaths,
+	metricHeadshotPercentage,
+	metricRoundsPlayed,
+	metricRoundsWon,
+	metricRoundsLost,
+	metricRoundsWithAce,
+	metricRoundsWithClutch,
+	metricRoundsWithEntryDeath,
+	metricRoundsWithEntryKill,
+	metricRoundsWithKOST,
+	metricRoundsWithKill,
+	metricRoundsWithMultiKill,
+	metricMatchesPlayed,
+	metricMatchesWon,
+	metricMatchesLost,
 }
 
 type ActionsMetricProvider struct {
@@ -149,9 +208,9 @@ func (p ActionsMetricProvider) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(p, ch)
 }
 
-type metric struct {
-	desc  *prometheus.Desc
-	value float64
+type metricInstance struct {
+	details metricDetails
+	value   float64
 }
 
 func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric) {
@@ -176,15 +235,15 @@ func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (p ActionsMetricProvider) collectMetricsWithoutRole(ch chan<- prometheus.Metric, gameModeName string, gameMode *stats.SummarizedGameModeStats) {
-	metricsNoRole := []metric{
-		{descMatchesPlayed, float64(gameMode.MatchesPlayed)},
-		{descMatchesWon, float64(gameMode.MatchesWon)},
-		{descMatchesLost, float64(gameMode.MatchesLost)},
+	metricsNoRole := []metricInstance{
+		{metricMatchesPlayed, float64(gameMode.MatchesPlayed)},
+		{metricMatchesWon, float64(gameMode.MatchesWon)},
+		{metricMatchesLost, float64(gameMode.MatchesLost)},
 	}
 	for _, metric := range metricsNoRole {
 		ch <- prometheus.MustNewConstMetric(
-			metric.desc,
-			prometheus.GaugeValue,
+			metric.details.desc,
+			metric.details.metricType,
 			metric.value,
 			p.Stats.SeasonSlug,
 			p.Username,
@@ -200,28 +259,28 @@ func (p ActionsMetricProvider) collectMetricsWithRole(ch chan<- prometheus.Metri
 		"defence": gameMode.Defence,
 	}
 	for roleName, roleStats := range roles {
-		metricsWithRole := []metric{
-			{descKills, float64(roleStats.Kills)},
-			{descDeaths, float64(roleStats.Deaths)},
-			{descEntryKills, float64(roleStats.EntryKills)},
-			{descEntryDeaths, float64(roleStats.EntryDeaths)},
-			{descHeadshotPercentage, roleStats.HeadshotPercentage},
-			{descRoundsPlayed, float64(roleStats.RoundsPlayed)},
-			{descRoundsWon, float64(roleStats.RoundsWon)},
-			{descRoundsLost, float64(roleStats.RoundsLost)},
-			{descRoundsWithAce, roleStats.RoundsWithAce},
-			{descRoundsWithClutch, roleStats.RoundsWithClutch},
-			{descRoundsWithEntryDeath, roleStats.RoundsWithEntryDeath},
-			{descRoundsWithEntryKill, roleStats.RoundsWithEntryKill},
-			{descRoundsWithKOST, roleStats.RoundsWithKOST},
-			{descRoundsWithKill, roleStats.RoundsWithKill},
-			{descRoundsWithMultiKill, roleStats.RoundsWithMultikill},
+		metricsWithRole := []metricInstance{
+			{metricKills, float64(roleStats.Kills)},
+			{metricDeaths, float64(roleStats.Deaths)},
+			{metricEntryKills, float64(roleStats.EntryKills)},
+			{metricEntryDeaths, float64(roleStats.EntryDeaths)},
+			{metricHeadshotPercentage, roleStats.HeadshotPercentage},
+			{metricRoundsPlayed, float64(roleStats.RoundsPlayed)},
+			{metricRoundsWon, float64(roleStats.RoundsWon)},
+			{metricRoundsLost, float64(roleStats.RoundsLost)},
+			{metricRoundsWithAce, roleStats.RoundsWithAce},
+			{metricRoundsWithClutch, roleStats.RoundsWithClutch},
+			{metricRoundsWithEntryDeath, roleStats.RoundsWithEntryDeath},
+			{metricRoundsWithEntryKill, roleStats.RoundsWithEntryKill},
+			{metricRoundsWithKOST, roleStats.RoundsWithKOST},
+			{metricRoundsWithKill, roleStats.RoundsWithKill},
+			{metricRoundsWithMultiKill, roleStats.RoundsWithMultikill},
 		}
 
 		for _, metric := range metricsWithRole {
 			ch <- prometheus.MustNewConstMetric(
-				metric.desc,
-				prometheus.GaugeValue,
+				metric.details.desc,
+				metric.details.metricType,
 				metric.value,
 				p.Stats.SeasonSlug,
 				p.Username,
@@ -234,6 +293,6 @@ func (p ActionsMetricProvider) collectMetricsWithRole(ch chan<- prometheus.Metri
 
 func ActionsErr(ch chan<- prometheus.Metric, err error) {
 	for _, d := range allKillDescs {
-		ch <- prometheus.NewInvalidMetric(d, err)
+		ch <- prometheus.NewInvalidMetric(d.desc, err)
 	}
 }
