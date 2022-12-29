@@ -35,18 +35,18 @@ var (
 		),
 		metricType: prometheus.GaugeValue,
 	}
-	metricRankedGamesWon = metricDetails{
+	metricRankedMatchesWon = metricDetails{
 		desc: prometheus.NewDesc(
-			"ranked_games_won",
+			"ranked_matches_won",
 			"Ranked wins by [user,season]",
 			labelsRanked,
 			nil,
 		),
 		metricType: prometheus.CounterValue,
 	}
-	metricRankedGamesLost = metricDetails{
+	metricRankedMatchesLost = metricDetails{
 		desc: prometheus.NewDesc(
-			"ranked_games_lost",
+			"ranked_matches_lost",
 			"Ranked losses by [user,season]",
 			labelsRanked,
 			nil,
@@ -59,8 +59,8 @@ var allRankedDescs = []metricDetails{
 	metricRankedMMR,
 	metricRankedRank,
 	metricRankedConfidence,
-	metricRankedGamesWon,
-	metricRankedGamesLost,
+	metricRankedMatchesWon,
+	metricRankedMatchesLost,
 }
 
 type RankedMetricProvider struct {
@@ -81,8 +81,8 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
 		{metricRankedMMR, float64(rankedStats.MMR)},
 		{metricRankedRank, float64(rankedStats.Rank)},
 		{metricRankedConfidence, float64(rankedStats.SkillStdev)},
-		{metricRankedGamesWon, float64(rankedStats.Wins)},
-		{metricRankedGamesLost, float64(rankedStats.Losses)},
+		{metricRankedMatchesWon, float64(rankedStats.Wins)},
+		{metricRankedMatchesLost, float64(rankedStats.Losses)},
 	} {
 		ch <- prometheus.MustNewConstMetric(
 			v.details.desc,
