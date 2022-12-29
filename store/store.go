@@ -106,13 +106,17 @@ func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
 func (s *Store) collectStats(ch chan<- prometheus.Metric, profile *r6api.Profile) {
 	// length of metadata already checked in RefreshMetadata, no need to check here
 	currentSeason := s.meta.Seasons[len(s.meta.Seasons)-1]
-	stats := new(stats.SummarizedStats)
-	if err := s.api.GetStats(profile, currentSeason.Slug, stats); err != nil {
+	summarizedStats := new(stats.SummarizedStats)
+	operatorStats := new(stats.OperatorStats)
+	if err := s.api.GetStats(profile, currentSeason.Slug, summarizedStats); err != nil {
+		metrics.ActionsErr(ch, err)
+	} else if err := s.api.GetStats(profile, currentSeason.Slug, operatorStats); err != nil {
 		metrics.ActionsErr(ch, err)
 	} else {
 		metrics.ActionsMetricProvider{
-			Stats:    stats,
-			Username: profile.Name,
+			SummarizedStats: summarizedStats,
+			OperatorStats:   operatorStats,
+			Username:        profile.Name,
 		}.Collect(ch)
 	}
 
