@@ -18,6 +18,8 @@ builds:
       - "7"
     binary: app
     ldflags:
+      - -s # -s and -w reduce binary size, but prevent debugging (not necessary for production build)
+      - -w
       - -X github.com/stnokott/r6prom/constants.LOG_LEVEL=1 # set log level to INFO
 changelog:
   sort: asc
