@@ -5,11 +5,6 @@ import (
 	"github.com/stnokott/r6api/types/stats"
 )
 
-type metricDetails struct {
-	desc       *prometheus.Desc
-	metricType prometheus.ValueType
-}
-
 var (
 	labelsActionsWithRole = []string{"season", "username", "gamemode", "role"}
 	metricKills           = metricDetails{
@@ -178,7 +173,7 @@ var (
 	}
 )
 
-var allKillDescs = []metricDetails{
+var allActionsDescs = []metricDetails{
 	metricKills,
 	metricDeaths,
 	metricEntryKills,
@@ -206,11 +201,6 @@ type ActionsMetricProvider struct {
 
 func (p ActionsMetricProvider) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(p, ch)
-}
-
-type metricInstance struct {
-	details metricDetails
-	value   float64
 }
 
 func (p ActionsMetricProvider) Collect(ch chan<- prometheus.Metric) {
@@ -292,7 +282,7 @@ func (p ActionsMetricProvider) collectMetricsWithRole(ch chan<- prometheus.Metri
 }
 
 func ActionsErr(ch chan<- prometheus.Metric, err error) {
-	for _, d := range allKillDescs {
+	for _, d := range allActionsDescs {
 		ch <- prometheus.NewInvalidMetric(d.desc, err)
 	}
 }

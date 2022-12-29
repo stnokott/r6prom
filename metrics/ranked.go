@@ -7,45 +7,60 @@ import (
 )
 
 var (
-	labelsRanked  = []string{"season", "username"}
-	descRankedMMR = prometheus.NewDesc(
-		"ranked_mmr",
-		"Ranked MMR by [user,season]",
-		labelsRanked,
-		nil,
-	)
-	descRankedRank = prometheus.NewDesc(
-		"ranked_rank",
-		"Ranked rank ID by [user,season]",
-		labelsRanked,
-		nil,
-	)
-	descRankedConfidence = prometheus.NewDesc(
-		"ranked_confidence",
-		"Ranked confidence by [user,season]",
-		labelsRanked,
-		nil,
-	)
-	descRankedGamesWon = prometheus.NewDesc(
-		"ranked_games_won",
-		"Ranked wins by [user,season]",
-		labelsRanked,
-		nil,
-	)
-	descRankedGamesLost = prometheus.NewDesc(
-		"ranked_games_lost",
-		"Ranked losses by [user,season]",
-		labelsRanked,
-		nil,
-	)
+	labelsRanked    = []string{"season", "username"}
+	metricRankedMMR = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_mmr",
+			"Ranked MMR by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRankedRank = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_rank",
+			"Ranked rank ID by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRankedConfidence = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_confidence",
+			"Ranked confidence by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.GaugeValue,
+	}
+	metricRankedGamesWon = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_games_won",
+			"Ranked wins by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
+	metricRankedGamesLost = metricDetails{
+		desc: prometheus.NewDesc(
+			"ranked_games_lost",
+			"Ranked losses by [user,season]",
+			labelsRanked,
+			nil,
+		),
+		metricType: prometheus.CounterValue,
+	}
 )
 
-var allRankedDescs = []*prometheus.Desc{
-	descRankedMMR,
-	descRankedRank,
-	descRankedConfidence,
-	descRankedGamesWon,
-	descRankedGamesLost,
+var allRankedDescs = []metricDetails{
+	metricRankedMMR,
+	metricRankedRank,
+	metricRankedConfidence,
+	metricRankedGamesWon,
+	metricRankedGamesLost,
 }
 
 type RankedMetricProvider struct {
@@ -62,19 +77,16 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
 	rankedStats := p.Stats
 	seasonSlug := p.Meta.SeasonSlugFromID(rankedStats.SeasonID)
 
-	for _, v := range []struct {
-		desc  *prometheus.Desc
-		value float64
-	}{
-		{descRankedMMR, float64(rankedStats.MMR)},
-		{descRankedRank, float64(rankedStats.Rank)},
-		{descRankedConfidence, float64(rankedStats.SkillStdev)},
-		{descRankedGamesWon, float64(rankedStats.Wins)},
-		{descRankedGamesLost, float64(rankedStats.Losses)},
+	for _, v := range []metricInstance{
+		{metricRankedMMR, float64(rankedStats.MMR)},
+		{metricRankedRank, float64(rankedStats.Rank)},
+		{metricRankedConfidence, float64(rankedStats.SkillStdev)},
+		{metricRankedGamesWon, float64(rankedStats.Wins)},
+		{metricRankedGamesLost, float64(rankedStats.Losses)},
 	} {
 		ch <- prometheus.MustNewConstMetric(
-			v.desc,
-			prometheus.GaugeValue,
+			v.details.desc,
+			v.details.metricType,
 			v.value,
 			seasonSlug,
 			p.Username,
@@ -84,6 +96,6 @@ func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
 
 func RankedErr(ch chan<- prometheus.Metric, err error) {
 	for _, d := range allRankedDescs {
-		ch <- prometheus.NewInvalidMetric(d, err)
+		ch <- prometheus.NewInvalidMetric(d.desc, err)
 	}
 }
