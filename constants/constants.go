@@ -2,7 +2,7 @@ package constants
 
 const (
 	NAME    string = "R6Prom"
-	VERSION string = "v0.2.0"
+	VERSION string = "v0.3.0"
 )
 
 // 0 = Debug, 1 = Info etc.
