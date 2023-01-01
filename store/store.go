@@ -1,13 +1,16 @@
 package store
 
 import (
+	"sync"
 	"time"
 
 	"github.com/go-co-op/gocron"
 	influxapi "github.com/influxdata/influxdb-client-go/v2/api"
+
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6api/types/metadata"
+	"github.com/stnokott/r6prom/metrics"
 )
 
 type Store struct {
@@ -71,31 +74,53 @@ func (s *Store) sendAll() {
 		return
 	}
 
-	for i, username := range s.usernames {
-		s.logger.Info().Str("username", username).Msgf("processing user %d/%d", i+1, len(s.usernames))
-		s.sendUserStats(username, meta)
+	now := time.Now()
+	var wg sync.WaitGroup
+
+	for _, username := range s.usernames {
+		wg.Add(1)
+		go func(username string) {
+			s.logger.Info().Str("username", username).Msgf("processing user %s", username)
+			s.sendUserStats(username, meta, now)
+			wg.Done()
+		}(username)
 	}
+	wg.Wait()
 }
 
-type statSenderFunc func(profile *r6api.Profile, meta *metadata.Metadata, t time.Time) error
-
-func (s *Store) sendUserStats(username string, meta *metadata.Metadata) {
+func (s *Store) sendUserStats(username string, meta *metadata.Metadata, t time.Time) {
 	profile, err := s.api.ResolveUser(username)
 	if err != nil {
 		s.logger.Err(err).Msg("could not resolve profile")
 		return
 	}
 
-	now := time.Now()
-	statSenderFuncs := map[string]statSenderFunc{
-		"maps":      s.sendMapStats,
-		"matches":   s.sendMatchStats,
-		"operators": s.sendOperatorStats,
-		"ranked":    s.sendRankedStats,
+	statSenderFuncs := []metrics.StatSenderFunc{
+		metrics.SendMapStats,
+		metrics.SendMatchStats,
+		metrics.SendOperatorStats,
+		metrics.SendRankedStats,
 	}
-	for name, f := range statSenderFuncs {
-		if err := f(profile, meta, now); err != nil {
-			s.logger.Err(err).Str("stat_name", name).Msg("could not send metrics")
+
+	running := len(statSenderFuncs)
+	chData := make(chan metrics.StatResponse, 3)
+
+	for _, f := range statSenderFuncs {
+		go f(s.api, profile, meta, t, chData)
+	}
+
+	for running > 0 {
+		data := <-chData
+		if data.Done {
+			running -= 1
+		} else if data.Err != nil {
+			s.logger.Err(data.Err).Msg("error sending statistics")
+			running -= 1
+		} else if data.P != nil {
+			s.influxAPI.WritePoint(data.P)
+		} else {
+			s.logger.Warn().Msg("got invalid data from data channel")
 		}
 	}
+	close(chData)
 }

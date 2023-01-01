@@ -1,4 +1,4 @@
-package store
+package metrics
 
 import (
 	"time"
@@ -9,11 +9,12 @@ import (
 	"github.com/stnokott/r6api/types/stats"
 )
 
-func (s *Store) sendMapStats(profile *r6api.Profile, meta *metadata.Metadata, t time.Time) error {
+func SendMapStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metadata, t time.Time, chData chan<- StatResponse) {
 	currentSeason := meta.Seasons[len(meta.Seasons)-1]
 	mapStats := new(stats.MapStats)
-	if err := s.api.GetStats(profile, currentSeason.Slug, mapStats); err != nil {
-		return err
+	if err := api.GetStats(profile, currentSeason.Slug, mapStats); err != nil {
+		chData <- StatResponse{Err: err}
+		return
 	}
 
 	gameModes := map[string]*stats.NamedTeamRoles{
@@ -31,8 +32,8 @@ func (s *Store) sendMapStats(profile *r6api.Profile, meta *metadata.Metadata, t 
 		}
 		for roleName, roleStats := range roles {
 			for _, mapStats := range roleStats {
-				s.influxAPI.WritePoint(
-					influxdb2.NewPoint(
+				chData <- StatResponse{
+					P: influxdb2.NewPoint(
 						"actions",
 						map[string]string{
 							"season_slug": currentSeason.Slug,
@@ -76,10 +77,10 @@ func (s *Store) sendMapStats(profile *r6api.Profile, meta *metadata.Metadata, t 
 						},
 						t,
 					),
-				)
+				}
 
 			}
 		}
 	}
-	return nil
+	chData <- StatResponse{Done: true}
 }

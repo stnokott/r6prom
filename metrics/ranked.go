@@ -1,4 +1,4 @@
-package store
+package metrics
 
 import (
 	"fmt"
@@ -9,18 +9,20 @@ import (
 	"github.com/stnokott/r6api/types/metadata"
 )
 
-func (s *Store) sendRankedStats(profile *r6api.Profile, meta *metadata.Metadata, t time.Time) error {
-	seasons, err := s.api.GetRankedHistory(profile, 1)
+func SendRankedStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metadata, t time.Time, chData chan<- StatResponse) {
+	seasons, err := api.GetRankedHistory(profile, 1)
 	if err != nil {
-		return err
+		chData <- StatResponse{Err: err}
+		return
 	}
 	if len(seasons) == 0 {
-		return fmt.Errorf("got no ranked history for user %s", profile.Name)
+		chData <- StatResponse{Err: fmt.Errorf("got no ranked history for user %s", profile.Name)}
+		return
 	}
 	stats := seasons[0]
 
-	s.influxAPI.WritePoint(
-		influxdb2.NewPoint(
+	chData <- StatResponse{
+		P: influxdb2.NewPoint(
 			"ranked",
 			map[string]string{
 				"season_slug": meta.SeasonSlugFromID(stats.SeasonID),
@@ -35,6 +37,6 @@ func (s *Store) sendRankedStats(profile *r6api.Profile, meta *metadata.Metadata,
 			},
 			t,
 		),
-	)
-	return nil
+	}
+	chData <- StatResponse{Done: true}
 }
