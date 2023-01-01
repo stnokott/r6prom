@@ -1,4 +1,5 @@
 dist/**
+.env
 
 ticket.json
 

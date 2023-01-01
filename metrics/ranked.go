@@ -1,112 +1,42 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
+	"fmt"
+	"time"
+
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6api/types/metadata"
-	"github.com/stnokott/r6api/types/ranked"
 )
 
-var (
-	labelsRanked    = []string{"season", "username"}
-	metricRankedMMR = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_mmr",
-			"Ranked MMR by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.GaugeValue,
+func SendRankedStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metadata, t time.Time, chData chan<- StatResponse) {
+	seasons, err := api.GetRankedHistory(profile, 1)
+	if err != nil {
+		chData <- StatResponse{Err: err}
+		return
 	}
-	metricRankedRank = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_rank",
-			"Ranked rank ID by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.GaugeValue,
+	if len(seasons) == 0 {
+		chData <- StatResponse{Err: fmt.Errorf("got no ranked history for user %s", profile.Name)}
+		return
 	}
-	metricRankedConfidence = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_confidence",
-			"Ranked confidence by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.GaugeValue,
-	}
-	metricRankedMatchesPlayed = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_matches_played",
-			"Ranked wins by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.CounterValue,
-	}
-	metricRankedMatchesWon = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_matches_won",
-			"Ranked wins by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.CounterValue,
-	}
-	metricRankedMatchesLost = metricDetails{
-		desc: prometheus.NewDesc(
-			"ranked_matches_lost",
-			"Ranked losses by [user,season]",
-			labelsRanked,
-			nil,
-		),
-		metricType: prometheus.CounterValue,
-	}
-)
+	stats := seasons[0]
 
-var allRankedDescs = []metricDetails{
-	metricRankedMMR,
-	metricRankedRank,
-	metricRankedConfidence,
-	metricRankedMatchesPlayed,
-	metricRankedMatchesWon,
-	metricRankedMatchesLost,
-}
-
-type RankedMetricProvider struct {
-	Stats    *ranked.SeasonStats
-	Meta     *metadata.Metadata
-	Username string
-}
-
-func (p RankedMetricProvider) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(p, ch)
-}
-
-func (p RankedMetricProvider) Collect(ch chan<- prometheus.Metric) {
-	rankedStats := p.Stats
-	seasonSlug := p.Meta.SeasonSlugFromID(rankedStats.SeasonID)
-
-	for _, v := range []metricInstance{
-		{metricRankedMMR, float64(rankedStats.MMR)},
-		{metricRankedRank, float64(rankedStats.Rank)},
-		{metricRankedConfidence, float64(rankedStats.SkillStdev)},
-		{metricRankedMatchesPlayed, float64(rankedStats.Wins + rankedStats.Losses)},
-		{metricRankedMatchesWon, float64(rankedStats.Wins)},
-		{metricRankedMatchesLost, float64(rankedStats.Losses)},
-	} {
-		ch <- prometheus.MustNewConstMetric(
-			v.details.desc,
-			v.details.metricType,
-			v.value,
-			seasonSlug,
-			p.Username,
-		)
+	chData <- StatResponse{
+		P: influxdb2.NewPoint(
+			"ranked",
+			map[string]string{
+				"season_slug": meta.SeasonSlugFromID(stats.SeasonID),
+				"season_name": meta.SeasonNameFromID(stats.SeasonID),
+				"username":    profile.Name,
+			},
+			map[string]interface{}{
+				"mmr":         stats.MMR,
+				"rank":        stats.Rank,
+				"skill_mean":  stats.SkillMean,
+				"skill_stdev": stats.SkillStdev,
+			},
+			t,
+		),
 	}
-}
-
-func RankedErr(ch chan<- prometheus.Metric, err error) {
-	for _, d := range allRankedDescs {
-		ch <- prometheus.NewInvalidMetric(d.desc, err)
-	}
+	chData <- StatResponse{Done: true}
 }

@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/domain"
+	influxlog "github.com/influxdata/influxdb-client-go/v2/log"
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6prom/config"
@@ -31,7 +30,7 @@ func main() {
 	}
 	logger := zerolog.New(writer).Level(zerolog.Level(logLevel)).With().Timestamp().Str("name", "R6Prom").Logger()
 
-	logger.Info().Str("version", constants.VERSION).Stringer("log_level", logger.GetLevel()).Msgf("Setting up %s", constants.NAME)
+	logger.Info().Str("version", constants.VERSION).Stringer("log_level", logger.GetLevel()).Msgf("setting up %s", constants.NAME)
 
 	conf, err := config.Load()
 	if err != nil {
@@ -42,39 +41,39 @@ func main() {
 	r6Logger := logger.With().Str("name", "R6API").Logger()
 	a := r6api.NewR6API(conf.Email, conf.Password, r6Logger)
 
-	// create store
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	influxClient := influxdb2.NewClientWithOptions(
+		conf.InfluxURL,
+		conf.InfluxAuthToken,
+		influxdb2.DefaultOptions().
+			SetBatchSize(10000). // high batch size to allow for manual flushing
+			SetApplicationName(constants.NAME).
+			SetLogLevel(influxlog.ErrorLevel).
+			SetPrecision(time.Second),
+	)
+	health, err := influxClient.Health(context.Background())
+	if err != nil {
+		logger.Fatal().Err(err).Msg("could not get InfluxDB health")
+	}
+	if health.Status != domain.HealthCheckStatusPass {
+		logger.Fatal().Msg("InfluxDB server unhealthy, aborting")
+	}
+	logger.Info().Str("version", *health.Version).Str("msg", *health.Message).Str("db_name", health.Name).Msg("connected to InfluxDB")
+	writeAPI := influxClient.WriteAPI(conf.InfluxOrg, conf.InfluxBucket)
+	influxErrs := writeAPI.Errors()
+	defer influxClient.Close()
 
-	chanStoreErrs := make(chan error)
-	go func() {
-		for {
-			err := <-chanStoreErrs
-			logger.Err(err).Msg("error in store operation")
-		}
-	}()
+	// create store
 	storeOpts := store.Opts{
 		ObservedUsernames: conf.ObservedUsernames,
-		ChanErrors:        chanStoreErrs,
-		MetadataTimeout:   12 * time.Hour,
+		InfluxWriteAPI:    writeAPI,
+		RefreshCron:       conf.RefreshCron,
 	}
-	store, err := store.New(a, &logger, storeOpts, ctx)
+	store, err := store.New(a, &logger, storeOpts)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error creating store")
 	}
-
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(store)
-
-	http.Handle(
-		"/metrics",
-		promhttp.HandlerFor(
-			registry,
-			promhttp.HandlerOpts{
-				ErrorLog: log.New(logger.Level(zerolog.ErrorLevel), "", 0),
-			},
-		),
-	)
-	logger.Info().Str("host", "localhost").Int("port", 2112).Msg("started Prometheus HTTP server")
-	logger.Err(http.ListenAndServe(":2112", nil)).Msg("Prometheus HTTP server stopped")
+	store.RunAsync()
+	for err := range influxErrs {
+		logger.Err(err).Msg("encountered Influx write error")
+	}
 }

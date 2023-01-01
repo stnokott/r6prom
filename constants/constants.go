@@ -1,7 +1,7 @@
 package constants
 
 const (
-	NAME    string = "R6Prom"
+	NAME    string = "R6Influx"
 	VERSION string = "v0.5.0"
 )
 

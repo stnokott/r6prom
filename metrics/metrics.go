@@ -1,13 +1,17 @@
 package metrics
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"time"
 
-type metricDetails struct {
-	desc       *prometheus.Desc
-	metricType prometheus.ValueType
+	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	"github.com/stnokott/r6api"
+	"github.com/stnokott/r6api/types/metadata"
+)
+
+type StatResponse struct {
+	P    *write.Point
+	Done bool
+	Err  error
 }
 
-type metricInstance struct {
-	details metricDetails
-	value   float64
-}
+type StatSenderFunc func(*r6api.R6API, *r6api.Profile, *metadata.Metadata, time.Time, chan<- StatResponse)
