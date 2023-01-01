@@ -70,7 +70,7 @@ func (s *Store) sendAll() {
 	defer func() {
 		s.influxAPI.Flush()
 		_, nextRun := s.scheduler.NextRun()
-		s.logger.Info().Msgf("done, next run at %v", nextRun)
+		s.logger.Info().Msgf("flushed stats, next run at %v", nextRun)
 	}()
 	meta, err := s.api.GetMetadata()
 	if err != nil {

@@ -2,7 +2,7 @@ package constants
 
 const (
 	NAME    string = "R6Influx"
-	VERSION string = "v0.6.0"
+	VERSION string = "v0.6.1"
 )
 
 // 0 = Debug, 1 = Info etc.
