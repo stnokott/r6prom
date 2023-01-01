@@ -45,7 +45,7 @@ func main() {
 		conf.InfluxURL,
 		conf.InfluxAuthToken,
 		influxdb2.DefaultOptions().
-			SetBatchSize(100). // high batch size to allow for manual flushing
+			SetBatchSize(10000). // high batch size to allow for manual flushing
 			SetApplicationName(constants.NAME).
 			SetLogLevel(influxlog.ErrorLevel).
 			SetPrecision(time.Second),
