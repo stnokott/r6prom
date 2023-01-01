@@ -63,6 +63,10 @@ func (s *Store) RunAsync() {
 
 func (s *Store) sendAll() {
 	s.logger.Info().Msg("sending all metrics")
+	if err := s.api.EnsureAuth(); err != nil {
+		s.logger.Err(err).Msg("could not authenticate")
+		return
+	}
 	defer func() {
 		s.influxAPI.Flush()
 		_, nextRun := s.scheduler.NextRun()
