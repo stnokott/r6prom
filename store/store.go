@@ -1,132 +1,101 @@
 package store
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/go-co-op/gocron"
+	influxapi "github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/rs/zerolog"
 	"github.com/stnokott/r6api"
 	"github.com/stnokott/r6api/types/metadata"
-	"github.com/stnokott/r6api/types/stats"
-	"github.com/stnokott/r6prom/metrics"
 )
 
 type Store struct {
+	usernames []string
 	api       *r6api.R6API
-	metaMutex sync.Mutex
-	meta      *metadata.Metadata
-	cache     *cache
-	opts      Opts
+	influxAPI influxapi.WriteAPI
+	scheduler *gocron.Scheduler
 	logger    *zerolog.Logger
 }
 
 type Opts struct {
 	// ObservedUsernames specifies the Uplay usernames to track metrics for
 	ObservedUsernames []string
-	// ChanErrors will receive errors from asynchronous operations, e.g. metadata refresh
-	ChanErrors chan<- error
-	// MetadataTimeout defines refresh interval for metadata
-	MetadataTimeout time.Duration
+	// InfluxClient handles the connection with the InfluxDB v2
+	InfluxWriteAPI influxapi.WriteAPI
+	// RefreshCron defines the interval at which the application checks for new stats
+	RefreshCron string
 }
 
-func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts, ctx context.Context) (*Store, error) {
+func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts) (*Store, error) {
+	sched := gocron.NewScheduler(time.Local)
+
 	store := &Store{
+		usernames: opts.ObservedUsernames,
 		api:       api,
-		metaMutex: sync.Mutex{},
-		cache:     newCache(api, logger, ctx),
-		opts:      opts,
+		influxAPI: opts.InfluxWriteAPI,
+		scheduler: sched,
 		logger:    logger,
 	}
 
-	if opts.MetadataTimeout.Seconds() < 10 {
-		return nil, errors.New("please set metadata timeout to >=10s, since it is an expensive operation and should not be called frequently")
+	if _, err := sched.Cron(opts.RefreshCron).Do(store.sendAll); err != nil {
+		return nil, err
 	}
+	store.scheduler = store.scheduler.SingletonMode().StartImmediately()
 
-	if err := store.RefreshMetadata(); err != nil {
-		return nil, fmt.Errorf("could not get first metadata: %w", err)
-	}
-	go func() {
-		for {
-			time.Sleep(opts.MetadataTimeout)
-			if err := store.RefreshMetadata(); err != nil {
-				opts.ChanErrors <- err
-			}
-		}
-	}()
+	logger.Info().Str("cron", opts.RefreshCron).Int("numUsernames", len(opts.ObservedUsernames)).Msg("initialized store")
+
 	return store, nil
 }
 
-func (s *Store) RefreshMetadata() error {
-	s.logger.Debug().Msg("refreshing metadata")
-	s.metaMutex.Lock()
+// Run starts the scheduler as a blocking call
+func (s *Store) Run() {
+	s.scheduler.StartBlocking()
+}
+
+// RunAsync starts the scheduler as a non-blocking call
+func (s *Store) RunAsync() {
+	s.scheduler.StartAsync()
+}
+
+func (s *Store) sendAll() {
+	s.logger.Info().Msg("sending all metrics")
+	defer func() {
+		s.influxAPI.Flush()
+		_, nextRun := s.scheduler.NextRun()
+		s.logger.Info().Msgf("done, next run at %v", nextRun)
+	}()
 	meta, err := s.api.GetMetadata()
 	if err != nil {
-		return err
-	}
-	if len(meta.Seasons) == 0 {
-		return fmt.Errorf("no seasons found")
-	}
-	s.meta = meta
-	s.metaMutex.Unlock()
-	return nil
-}
-
-func (s *Store) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(s, ch)
-}
-
-func (s *Store) Collect(ch chan<- prometheus.Metric) {
-	for _, username := range s.opts.ObservedUsernames {
-		s.collectUser(ch, username)
-	}
-}
-
-func (s *Store) collectUser(ch chan<- prometheus.Metric, username string) {
-	s.logger.Debug().Str("username", username).Msg("collecting")
-
-	var err error
-	var profile *r6api.Profile
-	profile, err = s.cache.GetProfile(username)
-	if err != nil || profile == nil {
-		if err == nil && profile == nil {
-			err = fmt.Errorf("could not resolve profile for %s", username)
-		}
-		metrics.ActionsErr(ch, err)
-		metrics.RankedErr(ch, err)
+		s.logger.Err(err).Msg("could not get metadata")
 		return
 	}
 
-	s.collectStats(ch, profile)
+	for i, username := range s.usernames {
+		s.logger.Info().Str("username", username).Msgf("processing user %d/%d", i+1, len(s.usernames))
+		s.sendUserStats(username, meta)
+	}
 }
 
-func (s *Store) collectStats(ch chan<- prometheus.Metric, profile *r6api.Profile) {
-	// length of metadata already checked in RefreshMetadata, no need to check here
-	currentSeason := s.meta.Seasons[len(s.meta.Seasons)-1]
-	summarizedStats := new(stats.SummarizedStats)
-	operatorStats := new(stats.OperatorStats)
-	if err := s.api.GetStats(profile, currentSeason.Slug, summarizedStats); err != nil {
-		metrics.ActionsErr(ch, err)
-	} else if err := s.api.GetStats(profile, currentSeason.Slug, operatorStats); err != nil {
-		metrics.ActionsErr(ch, err)
-	} else {
-		metrics.ActionsMetricProvider{
-			SummarizedStats: summarizedStats,
-			OperatorStats:   operatorStats,
-			Username:        profile.Name,
-		}.Collect(ch)
+type statSenderFunc func(profile *r6api.Profile, meta *metadata.Metadata, t time.Time) error
+
+func (s *Store) sendUserStats(username string, meta *metadata.Metadata) {
+	profile, err := s.api.ResolveUser(username)
+	if err != nil {
+		s.logger.Err(err).Msg("could not resolve profile")
+		return
 	}
 
-	if skillHistory, err := s.api.GetRankedHistory(profile, 1); err != nil {
-		metrics.RankedErr(ch, err)
-	} else {
-		metrics.RankedMetricProvider{
-			Stats:    skillHistory[0],
-			Meta:     s.meta,
-			Username: profile.Name,
-		}.Collect(ch)
+	now := time.Now()
+	statSenderFuncs := map[string]statSenderFunc{
+		"maps":      s.sendMapStats,
+		"matches":   s.sendMatchStats,
+		"operators": s.sendOperatorStats,
+		"ranked":    s.sendRankedStats,
+	}
+	for name, f := range statSenderFuncs {
+		if err := f(profile, meta, now); err != nil {
+			s.logger.Err(err).Str("stat_name", name).Msg("could not send metrics")
+		}
 	}
 }
