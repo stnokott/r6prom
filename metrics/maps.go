@@ -25,13 +25,13 @@ func SendMapStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metad
 	}
 
 	for gameModeName, gameModeStats := range gameModes {
-		roles := map[string][]stats.NamedTeamRoleStats{
+		roles := map[string]stats.NamedTeamRoleStats{
 			"all":     gameModeStats.All,
 			"attack":  gameModeStats.Attack,
 			"defence": gameModeStats.Defence,
 		}
 		for roleName, roleStats := range roles {
-			for _, mapStats := range roleStats {
+			for mapName, mapStats := range roleStats {
 				chData <- StatResponse{
 					P: influxdb2.NewPoint(
 						"actions",
@@ -41,7 +41,7 @@ func SendMapStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metad
 							"username":    profile.Name,
 							"gamemode":    gameModeName,
 							"role":        roleName,
-							"map":         mapStats.Name,
+							"map":         mapName,
 						},
 						map[string]interface{}{
 							"kills":                   mapStats.Kills,
