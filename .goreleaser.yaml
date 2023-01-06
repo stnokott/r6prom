@@ -55,6 +55,10 @@ release:
     owner: stnokott
     name: r6prom
   name_template: "v{{ .Version }}"
+  footer: |
+    `go get github.com/stnokott/{{ .ProjectName }}`
+
+    `go get github.com/stnokott/{{ .ProjectName }}@v{{ .Version }}`
 dockers:
   - image_templates:
       - "ghcr.io/stnokott/{{ .ProjectName }}:latest"
