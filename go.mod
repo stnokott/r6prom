@@ -6,7 +6,7 @@ require (
 	github.com/go-co-op/gocron v1.18.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.1
 	github.com/rs/zerolog v1.28.0
-	github.com/stnokott/r6api v0.5.1
+	github.com/stnokott/r6api v0.6.0
 )
 
 require (
