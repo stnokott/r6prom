@@ -56,8 +56,8 @@ release:
     name: r6prom
   name_template: "v{{ .Version }}"
   footer: |
+    ### Installation
     `go get github.com/stnokott/{{ .ProjectName }}`
-
     `go get github.com/stnokott/{{ .ProjectName }}@v{{ .Version }}`
 dockers:
   - image_templates:
