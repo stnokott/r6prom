@@ -99,17 +99,10 @@ func (s *Store) sendUserStats(username string, meta *metadata.Metadata, t time.T
 		return
 	}
 
-	statSenderFuncs := []metrics.StatSenderFunc{
-		metrics.SendMapStats,
-		metrics.SendMatchStats,
-		metrics.SendOperatorStats,
-		metrics.SendRankedStats,
-	}
+	running := len(metrics.AllSenders)
+	chData := make(chan metrics.StatResponse, 10)
 
-	running := len(statSenderFuncs)
-	chData := make(chan metrics.StatResponse, 3)
-
-	for _, f := range statSenderFuncs {
+	for _, f := range metrics.AllSenders {
 		go f(s.api, profile, meta, t, chData)
 	}
 

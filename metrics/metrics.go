@@ -15,3 +15,11 @@ type StatResponse struct {
 }
 
 type StatSenderFunc func(*r6api.R6API, *r6api.Profile, *metadata.Metadata, time.Time, chan<- StatResponse)
+
+var AllSenders = []StatSenderFunc{
+	SendMapStats,
+	SendMatchStats,
+	SendOperatorStats,
+	SendRankedStats,
+	SendRankedTabStatsStats,
+}

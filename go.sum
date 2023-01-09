@@ -57,8 +57,6 @@ github.com/robfig/cron/v3 v3.0.1/go.mod h1:eQICP3HwyT7UooqI/z+Ov+PtYAWygg1TEWWzG
 github.com/rs/xid v1.4.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.28.0 h1:MirSo27VyNi7RJYP3078AA1+Cyzd2GB66qy3aUHvsWY=
 github.com/rs/zerolog v1.28.0/go.mod h1:NILgTygv/Uej1ra5XxGf82ZFSLk58MFGAUS2o6usyD0=
-github.com/stnokott/r6api v0.6.0 h1:OBZ79mDqWBrWBKcYK0epj1+KaPagCpO/Isiw4uDLCB0=
-github.com/stnokott/r6api v0.6.0/go.mod h1:sbn8cTqmxHNRKroifAbE3wDiARvcMuUkor8aib8Slv8=
 github.com/stnokott/r6api v0.7.0 h1:awmkeTA/elaAPicdriF2WDwKb+9h/mdAajPvXEsO32Q=
 github.com/stnokott/r6api v0.7.0/go.mod h1:sbn8cTqmxHNRKroifAbE3wDiARvcMuUkor8aib8Slv8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

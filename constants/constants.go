@@ -1,8 +1,9 @@
 package constants
 
 const (
-	NAME    string = "R6Influx"
-	VERSION string = "v0.7.0"
+	NAME       string = "R6Influx"
+	VERSION    string = "v0.7.0"
+	USER_AGENT string = NAME + "/" + VERSION + " (see github.com/stnokott/r6prom)"
 )
 
 // 0 = Debug, 1 = Info etc.
