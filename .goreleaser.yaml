@@ -59,10 +59,11 @@ release:
     ### Installation
     `go get github.com/stnokott/{{ .ProjectName }}`
     `go get github.com/stnokott/{{ .ProjectName }}@v{{ .Version }}`
+
 dockers:
   - image_templates:
-      - "ghcr.io/stnokott/{{ .ProjectName }}:latest"
-      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-amd64"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-amd64"
     goos: linux
     goarch: amd64
     dockerfile: "Dockerfile"
@@ -75,8 +76,8 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/amd64"
   - image_templates:
-      - "ghcr.io/stnokott/{{ .ProjectName }}:latest"
-      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-armv7"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-armv7"
     goos: linux
     goarch: arm
     goarm: "7"
@@ -90,8 +91,8 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/arm/v7"
   - image_templates:
-      - "ghcr.io/stnokott/{{ .ProjectName }}:latest"
-      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-arm64"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-arm64"
     goos: linux
     goarch: arm64
     dockerfile: "Dockerfile"
@@ -103,3 +104,13 @@ dockers:
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--platform=linux/arm64"
+
+docker_manifests:
+  - name_template: "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-amd64"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-armv7"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-armv7"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:latest-arm64"
+      - "ghcr.io/stnokott/{{ .ProjectName }}:{{ .Version }}-arm64"
