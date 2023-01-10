@@ -3,6 +3,7 @@ package metrics
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -55,6 +56,12 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 	}
 
 	currentSeason := meta.Seasons[len(meta.Seasons)-1]
+	rankSlugSplit := strings.SplitN(tabStats.CurrentSeason.Ranked.RankSlug, "-", 2)
+	rankID, err := strconv.Atoi(rankSlugSplit[0])
+	if err != nil {
+		chData <- StatResponse{Err: err}
+		return
+	}
 
 	chData <- StatResponse{
 		P: influxdb2.NewPoint(
@@ -67,7 +74,8 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 			map[string]interface{}{
 				"mmr":       tabStats.CurrentSeason.Ranked.MMR,
 				"real_mmr":  tabStats.CurrentSeason.Ranked.RealMMR,
-				"rank_slug": strings.SplitN(tabStats.CurrentSeason.Ranked.RankSlug, "-", 2)[1],
+				"rank_id":   rankID,
+				"rank_slug": rankSlugSplit[1],
 			},
 			t,
 		),
