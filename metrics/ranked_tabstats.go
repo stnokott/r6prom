@@ -3,6 +3,8 @@ package metrics
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -14,8 +16,9 @@ import (
 type rankedTabStats struct {
 	CurrentSeason struct {
 		Ranked struct {
-			MMR     int `json:"mmr"`
-			RealMMR int `json:"real_mmr"`
+			MMR      int    `json:"mmr"`
+			RealMMR  int    `json:"real_mmr"`
+			RankSlug string `json:"rank_slug"`
 		} `json:"ranked"`
 	} `json:"current_season_records"`
 }
@@ -53,6 +56,12 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 	}
 
 	currentSeason := meta.Seasons[len(meta.Seasons)-1]
+	rankSlugSplit := strings.SplitN(tabStats.CurrentSeason.Ranked.RankSlug, "-", 2)
+	rankID, err := strconv.Atoi(rankSlugSplit[0])
+	if err != nil {
+		chData <- StatResponse{Err: err}
+		return
+	}
 
 	chData <- StatResponse{
 		P: influxdb2.NewPoint(
@@ -63,8 +72,10 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 				"username":    profile.Name,
 			},
 			map[string]interface{}{
-				"mmr":      tabStats.CurrentSeason.Ranked.MMR,
-				"real_mmr": tabStats.CurrentSeason.Ranked.RealMMR,
+				"mmr":       tabStats.CurrentSeason.Ranked.MMR,
+				"real_mmr":  tabStats.CurrentSeason.Ranked.RealMMR,
+				"rank_id":   rankID,
+				"rank_slug": rankSlugSplit[1],
 			},
 			t,
 		),
