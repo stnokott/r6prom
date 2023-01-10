@@ -57,7 +57,7 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 
 	currentSeason := meta.Seasons[len(meta.Seasons)-1]
 	rankSlugSplit := strings.SplitN(tabStats.CurrentSeason.Ranked.RankSlug, "-", 2)
-	rankID, err := strconv.Atoi(rankSlugSplit[0])
+	seasonID, err := strconv.Atoi(rankSlugSplit[0])
 	if err != nil {
 		chData <- StatResponse{Err: err}
 		return
@@ -69,12 +69,12 @@ func SendRankedTabStatsStats(_ *r6api.R6API, profile *r6api.Profile, meta *metad
 			map[string]string{
 				"season_slug": currentSeason.Slug,
 				"season_name": currentSeason.Name,
+				"season_id":   strconv.Itoa(seasonID),
 				"username":    profile.Name,
 			},
 			map[string]interface{}{
 				"mmr":       tabStats.CurrentSeason.Ranked.MMR,
 				"real_mmr":  tabStats.CurrentSeason.Ranked.RealMMR,
-				"rank_id":   rankID,
 				"rank_slug": rankSlugSplit[1],
 			},
 			t,
