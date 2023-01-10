@@ -3,4 +3,4 @@ commitizen:
   tag_format: v$version
   version: 0.7.1
   version_files:
-  - constants/constants.go:VERSION string
+    - constants/constants.go:VERSION    string
