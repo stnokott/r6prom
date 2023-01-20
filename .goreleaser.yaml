@@ -21,6 +21,7 @@ builds:
       - -s # -s and -w reduce binary size, but prevent debugging (not necessary for production build)
       - -w
       - -X github.com/stnokott/r6prom/constants.LOG_LEVEL=1 # set log level to INFO
+      - -X github.com/stnokott/r6prom/constants.VERSION=v{{ .Version }}
 changelog:
   sort: asc
   abbrev: -1
