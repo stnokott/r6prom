@@ -26,7 +26,7 @@ type rankedTabStats struct {
 const tabStatsBaseURL = "https://r6.apitab.net/website/profiles/"
 
 func getRankedTabStats(profile *r6api.Profile) (result *rankedTabStats, err error) {
-	requestURL := tabStatsBaseURL + profile.ProfileID + "?update=false"
+	requestURL := tabStatsBaseURL + profile.ProfileID + "?update=true"
 	req, _ := http.NewRequest("GET", requestURL, nil)
 	req.Header.Add("User-Agent", constants.USER_AGENT)
 	req.Header.Add("Accept", "application/json")
