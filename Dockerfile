@@ -1,4 +1,4 @@
-FROM alpine:3.17.1
+FROM alpine:3.17.3
 
 ENV TZ=Europe/Berlin
 ENV UBI_EMAIL="my@mail.com"
