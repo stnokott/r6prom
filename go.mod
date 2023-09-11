@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/go-co-op/gocron v1.27.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/stnokott/r6api v0.7.0
 )
 
