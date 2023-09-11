@@ -1,6 +1,6 @@
 module github.com/stnokott/r6prom
 
-go 1.19
+go 1.20.0
 
 require (
 	github.com/go-co-op/gocron v1.27.0
