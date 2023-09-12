@@ -17,15 +17,18 @@ func SendMapStats(api *r6api.R6API, profile *r6api.Profile, meta *metadata.Metad
 		return
 	}
 
-	gameModes := map[string]map[string]stats.NamedMapStatDetails{
-		"all":      *mapStats.All,
-		"casual":   *mapStats.Casual,
-		"unranked": *mapStats.Unranked,
-		"ranked":   *mapStats.Ranked,
+	gameModes := map[string]*map[string]stats.NamedMapStatDetails{
+		"all":      mapStats.All,
+		"casual":   mapStats.Casual,
+		"unranked": mapStats.Unranked,
+		"ranked":   mapStats.Ranked,
 	}
 
 	for gameModeName, gameModeStats := range gameModes {
-		for mapName, mapStats := range gameModeStats {
+		if gameModeStats == nil {
+			continue
+		}
+		for mapName, mapStats := range *gameModeStats {
 			labels := map[string]string{
 				"season_slug": currentSeason.Slug,
 				"season_name": currentSeason.Name,

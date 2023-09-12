@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v2.38.0
+    rev: 3.8.2
     hooks:
       - id: commitizen
   - repo: https://github.com/pryorda/dockerfilelint-precommit-hooks
@@ -8,11 +8,11 @@ repos:
     hooks:
       - id: dockerfilelint
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.19.2
+    rev: 0.26.3
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.50.1
+    rev: v1.54.2
     hooks:
       - id: golangci-lint
