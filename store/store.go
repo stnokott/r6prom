@@ -46,19 +46,35 @@ func New(api *r6api.R6API, logger *zerolog.Logger, opts Opts) (*Store, error) {
 	}
 	store.scheduler = store.scheduler.SingletonMode().StartImmediately()
 
-	logger.Info().Str("cron", opts.RefreshCron).Int("numUsernames", len(opts.ObservedUsernames)).Msg("initialized store")
+	logger.
+		Info().
+		Str("cron", opts.RefreshCron).
+		Int("numUsernames", len(opts.ObservedUsernames)).
+		Msg("initialized store")
 
 	return store, nil
 }
 
 // Run starts the scheduler as a blocking call
 func (s *Store) Run() {
+	go func() {
+		time.Sleep(1 * time.Second)
+		s.onStart()
+	}()
 	s.scheduler.StartBlocking()
 }
 
 // RunAsync starts the scheduler as a non-blocking call
 func (s *Store) RunAsync() {
 	s.scheduler.StartAsync()
+	s.onStart()
+}
+
+func (s *Store) onStart() {
+	_, next := s.scheduler.NextRun()
+	s.logger.Info().
+		Time("next_run", next).
+		Msg("scheduler started")
 }
 
 func (s *Store) sendAll() {
